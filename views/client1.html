@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>客户端1</title>
+</head>
+
+<body>
+  <div>
+    <label>这里是聊天内容:</label><br />
+    <textarea id="content" style="height: 200px; width:300px;"></textarea>
+    <br />
+    <input id="sendMsg" type="text" />
+    <button id="btn_send">发送</button>
+  </div>
+  <div>这里是我的命名空间接收消息</div>
+  <div id="myMess"></div>
+
+  <div>房间模块</div>
+  <button id='inRoom'>我要进入房间</button>
+  <button id='leaveRoom'>我要离开房间</button>
+  <div id='roomPage'>进入离开房间后的提示</div>
+  <div id='newMember'></div>
+  <!-- 首先引入 socket.io 客户端脚本-->
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="text/javascript">
+    var socket = io.connect();
+    
+    // 监听 receiveMsg 事件，用来接收其他客户端推送的消息
+    socket.on("receiveMsg", function (data) {
+      console.log("后台传进来的数据", data)
+      content.value += data.client + ":" + data.msg + "\r\n";
+    });
+    var content = document.getElementById("content");
+    var sendMsg = document.getElementById("sendMsg");
+    var btn_send = document.getElementById("btn_send");
+    var in_room_btn = document.getElementById("inRoom");
+    var myMess = document.getElementById('myMess');
+    var newMember = document.getElementById('newMember');
+    var leaveRoom = document.getElementById('leaveRoom');
+    btn_send.addEventListener("click", function () {
+      var data = { client: "客户端1", msg: sendMsg.value };
+      //给服务端发送 sendMsg事件名的消息
+      socket.emit("sendMsg", data);
+      content.value += data.client + ":" + data.msg + "\r\n";
+      sendMsg.value = "";
+    });
+    // 命名空间代码
+    var Mysocket = io('/my-namespace');
+    Mysocket.on("mysendMsg", function (data) {
+      var div = document.createElement('p')
+      div.innerHTML = data
+      myMess.appendChild(div)
+    });
+    // 要求进入房间
+    in_room_btn.addEventListener("click", function () {
+      socket.emit('joinToRoom', {id: 1, name: '新成员', roomId: '12212'})
+    });
+    socket.on("joinToRoom", function (data) {
+      console.log("有人进入了房间", data)
+      newMember.innerHTML += data.name + '进入了房间号为' + data.roomId
+    });
+    socket.on("updateGroupNumber", function (data) {
+      console.log("房间人数为", data)
+    });
+    leaveRoom.addEventListener("click", function () {
+      socket.emit('leaveRoom',{id: 1, name: '新成员', roomId: '12212'}, function (data) {
+        newMember.innerHTML += data.name + '离开了房间号为' + data.roomId
+      })
+    });
+  </script>
+
+</body>
+
+</html>
